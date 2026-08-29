@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Workout — Athlete</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="role-me">
+
+<div id="lock" class="lock-overlay">
+  <div class="brand">GRIND<span>SET</span></div>
+  <div class="lock-dots" id="lockDots"></div>
+  <div class="lock-pad" id="lockPad"></div>
+  <div class="lock-error" id="lockError"></div>
+</div>
+
+<div class="wrap" id="app" style="display:none;">
+
+  <div class="topbar">
+    <div class="brand">GRIND<span>SET</span></div>
+    <div class="badge live" id="statusBadge">IDLE</div>
+  </div>
+
+  <div class="dial-card">
+    <div class="dial-wrap">
+      <svg viewBox="0 0 232 232">
+        <circle class="dial-track" cx="116" cy="116" r="100"></circle>
+        <circle class="dial-fill" id="dialFill" cx="116" cy="116" r="100"
+                stroke-dasharray="628" stroke-dashoffset="628"></circle>
+      </svg>
+      <div class="dial-center">
+        <div class="dial-reps"><span id="repsDone">0</span><small> / <span id="repsTotal">720</span></small></div>
+        <div class="dial-sub">reps</div>
+        <div class="dial-set" id="setLabel">SET 1 / 24</div>
+      </div>
+    </div>
+
+    <div class="pips" id="pips"></div>
+  </div>
+
+  <div class="break-banner" id="breakBanner">
+    <div>
+      <div class="label">Rest</div>
+      <div class="time" id="breakTime">0:45</div>
+    </div>
+    <button class="btn" id="skipBreakBtn">Skip rest</button>
+  </div>
+
+  <div class="complete-banner" id="completeBanner">
+    <div class="title">WORKOUT COMPLETE</div>
+    <div class="sub" id="completeSub"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-label">Elapsed</div>
+      <div class="stat-value" id="elapsedVal">0:00</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Reps left</div>
+      <div class="stat-value" id="repsLeftVal">720</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Avg pace</div>
+      <div class="stat-value" id="paceVal">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Sets done</div>
+      <div class="stat-value" id="setsVal">0 / 24</div>
+    </div>
+  </div>
+
+  <div class="start-card" id="startHint">Tap start when you're ready to grind.</div>
+
+  <button class="rep-btn" id="repBtn" disabled>START</button>
+
+  <div class="controls">
+    <button class="btn" id="pauseBtn">Pause</button>
+    <button class="btn danger-outline" id="resetBtn">Reset</button>
+  </div>
+
+  <div class="adjust-card">
+    <div class="adjust-title">
+      <span>Manual adjust</span>
+      <span id="avgTag" style="color:var(--text-dim); font-family:'JetBrains Mono',monospace;">—</span>
+    </div>
+    <div class="adjust-row" style="margin-bottom:8px;">
+      <div class="chip add" data-add="1">+1</div>
+      <div class="chip add" data-add="5">+5</div>
+      <div class="chip add" data-add="10">+10</div>
+      <div class="chip add" id="addCustom">+…</div>
+    </div>
+    <div class="adjust-row">
+      <div class="chip remove" data-remove="1">−1</div>
+      <div class="chip remove" data-remove="5">−5</div>
+      <div class="chip remove" data-remove="10">−10</div>
+      <div class="chip remove" id="removeCustom">−…</div>
+    </div>
+  </div>
+
+  <footer class="foot">SYNCED &middot; <span id="syncMode">local</span></footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/sync.js"></script>
+<script src="js/sound.js"></script>
+<script src="js/me.js"></script>
+</body>
+</html>
