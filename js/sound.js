@@ -8,16 +8,23 @@
   let ctx = null;
 
   function ensureCtx() {
-    if (!ctx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      ctx = new AC();
+    try {
+      if (!ctx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        ctx = new AC();
+      }
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    } catch (e) {
+      console.warn('GRINDSET: audio unavailable, continuing without sound.', e);
+      return null;
     }
-    if (ctx.state === 'suspended') ctx.resume();
-    return ctx;
   }
 
   function beep(freq, startTime, duration, peak) {
     const c = ensureCtx();
+    if (!c) return;
     const osc = c.createOscillator();
     const gain = c.createGain();
     osc.type = 'square';
@@ -34,6 +41,7 @@
   /** Rest is over — loud, sharp, impossible to miss. */
   function playBreakEnd() {
     const c = ensureCtx();
+    if (!c) return;
     const now = c.currentTime;
     beep(920, now, 0.16, 1.0);
     beep(920, now + 0.22, 0.16, 1.0);
@@ -43,6 +51,7 @@
   /** Whole workout finished — a little fanfare. */
   function playComplete() {
     const c = ensureCtx();
+    if (!c) return;
     const now = c.currentTime;
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => beep(f, now + i * 0.16, 0.24, 0.9));
   }

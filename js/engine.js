@@ -81,6 +81,7 @@ function resetWorkout(state, now = Date.now()) {
 /** The athlete genuinely did one rep — tap the button. */
 function logRep(state, now = Date.now()) {
   if (state.status !== 'active') return state;
+  if (state.completedReps >= totalReps(state)) return state;
 
   const duration = state.lastRepAt ? now - state.lastRepAt : FALLBACK_REP_MS;
   const repSamples = [...state.repSamples, duration].slice(-MAX_REP_SAMPLES);
@@ -153,16 +154,27 @@ function resumeWorkout(state, now = Date.now()) {
 /**
  * Manually add N reps without actually doing them ("adjust").
  * Fast-forwards elapsed time using the athlete's own average rep pace,
- * plus a full break for every set boundary skipped over.
+ * plus a full break for every set boundary skipped over — including the
+ * one you're currently resting in, if you cheat again mid-break.
  */
 function adjustAdd(state, n, now = Date.now()) {
   if (n <= 0) return state;
-  const avg = averageRepMs(state);
   const total = totalReps(state);
+  if (state.completedReps >= total) return state; // already complete — nothing to add
+
+  const avg = averageRepMs(state);
   const perSet = state.config.repsPerSet;
 
   let completedReps = state.completedReps;
   let elapsedBaseMs = getElapsedMs(state, now);
+
+  // If we're currently resting, cheating means skipping the REST of the
+  // rest — pay for whatever time hasn't actually ticked yet, so this
+  // pending break is never left uncredited (and never double-counted).
+  if (state.status === 'break') {
+    elapsedBaseMs += getBreakRemainingMs(state, now);
+  }
+
   let landedOnBoundary = false;
   let didComplete = false;
 
@@ -200,19 +212,23 @@ function adjustAdd(state, n, now = Date.now()) {
       ...state,
       completedReps,
       elapsedBaseMs,
-      segmentStart: null,
+      segmentStart: now, // clock keeps ticking naturally if you don't cheat further
       status: 'break',
       breakEndTime: now + state.config.breakMs,
       updatedAt: now,
     };
   }
 
+  // Not landed on a boundary, not complete: we're now genuinely mid-set,
+  // so status must resolve to 'active' (or stay 'paused') — never left
+  // hanging as a stale 'break'/'complete' from before this call.
   return {
     ...state,
     completedReps,
     elapsedBaseMs,
     segmentStart: state.status === 'paused' ? null : now,
-    status: state.status === 'idle' ? 'active' : state.status,
+    status: state.status === 'paused' ? 'paused' : 'active',
+    breakEndTime: null,
     lastRepAt: now,
     updatedAt: now,
   };
@@ -227,10 +243,18 @@ function adjustRemove(state, n, now = Date.now()) {
   let completedReps = state.completedReps;
   let elapsedBaseMs = getElapsedMs(state, now);
 
+  // If we're currently resting, only the time actually spent so far in
+  // THIS break has been credited — refund exactly that, not a full break,
+  // or we'd wipe out time from reps that came before it too.
+  if (state.status === 'break') {
+    elapsedBaseMs -= (state.config.breakMs - getBreakRemainingMs(state, now));
+  }
+
   for (let i = 0; i < n; i++) {
     if (completedReps <= 0) break;
-    if (completedReps % perSet === 0) {
-      elapsedBaseMs -= state.config.breakMs; // uncross a break boundary
+    const isPendingBreakBoundary = i === 0 && state.status === 'break' && completedReps % perSet === 0;
+    if (completedReps % perSet === 0 && !isPendingBreakBoundary) {
+      elapsedBaseMs -= state.config.breakMs; // uncross an already-paid break boundary
     }
     completedReps -= 1;
     elapsedBaseMs -= avg;

@@ -34,7 +34,7 @@
   }
 
   function onKey(k) {
-    if (window.Sound) Sound.unlock(); // first tap on the page — unlocks audio for later alerts
+    try { if (window.Sound) Sound.unlock(); } catch (e) { /* never let audio break the keypad */ }
     if (k === '⌫') { entered = entered.slice(0, -1); }
     else if (entered.length < DEFAULT_PIN.length) { entered += k; }
     renderDots();
