@@ -1,21 +1,45 @@
 # GRINDSET — Workout Tracker
 
-A two-panel pushup tracker built for a 24 sets × 30 reps × 45s-rest workout
-(edit the numbers in `js/engine.js` → `DEFAULT_CONFIG` for a different plan).
+A two-panel workout tracker. One **rep** = one full set (e.g. 30 pushups).
+You press **Log Rep** once per set; a real rest countdown starts automatically
+and ends in a loud alarm. Reps, pushups-per-rep, and rest length are all
+adjustable right in the app — no code editing needed.
 
-- **`me.html`** — your panel. PIN-locked. Full controls, live pace tracking,
-  and a low-key **Manual Adjust** section for nudging the rep count up or down.
+- **`me.html`** — your panel. PIN-locked (default `7734`). Start/pause/reset,
+  the settings gear (⚙) to change the plan, and a low-key **Manual Adjust**
+  section for nudging the rep count up or down.
 - **`dad.html`** — spectator panel. Read-only, no adjust controls, no way to
-  tell it exists. Share this link with your dad.
+  tell they exist. Share this link with your dad.
+
+## How a rep works
+
+1. Tap **START**.
+2. Do your set (e.g. 30 pushups).
+3. Tap **LOG REP**. A real rest countdown starts immediately (default 45s).
+4. When it hits zero, a loud alarm plays and the button flips back to
+   **LOG REP** for the next one.
+5. Repeat until all reps are done.
 
 Adjusting reps recalculates elapsed time using your real average time-per-rep
-(plus a full 45s rest for every set boundary it skips over), so the clock on
-both panels always matches the rep count — nudge it and the timer jumps too.
+(plus a full rest for every rest period it skips over), so the total-time
+clock on both panels always matches the rep count — nudge it and the timer
+jumps too.
+
+## Changing the numbers
+
+Tap the ⚙ gear on your panel (top right). Set:
+- **Number of reps** (sets) — default 24
+- **Pushups per rep** — default 30 (this is just a label; it doesn't affect
+  timing, only what's displayed)
+- **Rest between reps (seconds)** — default 45
+
+Saving resets the current workout on both panels (there's a confirmation if
+one's in progress).
 
 ## 1. Run it locally
 
 Just open `index.html` in a browser — no build step. On one device/browser,
-`me.html` and `dad.html` will sync live between tabs automatically (via
+`me.html` and `dad.html` sync live between tabs automatically (via
 `localStorage`).
 
 ## 2. Deploy to GitHub Pages
@@ -62,14 +86,26 @@ localStorage.setItem('grindset_pin', '1234'); // your new PIN
 
 That's stored per-device, so set it separately on each device you use.
 
-## How the manual adjust math works
+## Sound
 
-- Every genuine rep tap records how long that rep took. The last ~40 taps are
-  averaged into your pace.
+A loud 3-beep alarm plays the instant a rest period ends (on both panels,
+independently). A softer fanfare plays when the whole workout is done.
+Browsers block audio until the page has been tapped at least once — `me.html`
+unlocks it automatically the first time you enter your PIN; `dad.html` shows
+a one-time "tap to enable sound" button.
+
+## How the manual adjust (cheat) math works
+
+- Every genuine rep tap records how long that set actually took. The last
+  ~40 taps are averaged into your pace.
 - **Adding** N reps fast-forwards the clock by `N × your average pace`, plus
-  one full 45s rest for every set boundary the jump skips over. If it lands
-  you exactly on a set boundary, a real rest period starts.
-- **Removing** N reps unwinds the same math in reverse, including pulling
-  back a rest if it uncrosses a set boundary.
-- If you haven't done a single real rep yet, it falls back to a 1.8s/rep
-  estimate.
+  one full rest period for every rest the jump skips over — including the
+  one you're currently sitting in if you cheat again mid-rest.
+- **Removing** N reps unwinds the same math in reverse.
+- Before you've done a single real rep, it estimates ~0.8s per pushup as a
+  starting guess (e.g. ~24s for a 30-pushup rep), then switches to your real
+  average as soon as you log one.
+
+This logic has been fuzz-tested against tens of thousands of random
+add/remove/pause/start sequences to make sure the clock never goes negative
+or gets stuck.

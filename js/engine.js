@@ -1,20 +1,33 @@
 /* ============================================================
    engine.js — the single source of truth for workout state.
    No DOM, no rendering. Both me.js and dad.js consume this.
+
+   Model: one "rep" = one full set of pushups (e.g. 30 pushups).
+   You press the button once per rep. A real rest countdown runs
+   after every rep except the last, ending in an alarm.
+   repsPerSet is permanently locked to 1 — "sets" and "reps" are
+   the same thing here; pushupsPerRep is purely a display label.
    ============================================================ */
 
 const DEFAULT_CONFIG = {
-  totalSets: 24,
-  repsPerSet: 30,
-  breakMs: 45 * 1000,
+  totalSets: 24,        // number of reps in the workout
+  repsPerSet: 1,         // locked — do not expose in the UI
+  breakMs: 45 * 1000,    // rest after each rep
+  pushupsPerRep: 30,     // cosmetic label only, e.g. "30 pushups"
 };
 
-const FALLBACK_REP_MS = 1800; // used before we have any real rep samples
 const MAX_REP_SAMPLES = 40;   // rolling window for the average
 
+function fallbackRepMs(config) {
+  // A rough starting guess before we have any real samples: ~0.8s/pushup.
+  const pushups = (config && config.pushupsPerRep) || DEFAULT_CONFIG.pushupsPerRep;
+  return Math.max(3000, pushups * 800);
+}
+
 function freshState(config) {
+  const merged = { ...DEFAULT_CONFIG, ...config, repsPerSet: 1 };
   return {
-    config: { ...DEFAULT_CONFIG, ...config },
+    config: merged,
     status: 'idle',        // idle | active | break | paused | complete
     completedReps: 0,
     elapsedBaseMs: 0,       // frozen accumulated elapsed time
@@ -28,12 +41,19 @@ function freshState(config) {
   };
 }
 
+/** Change the workout plan (reps / pushups-per-rep / break length). Always resets. */
+function configureWorkout(state, partialConfig, now = Date.now()) {
+  const next = freshState({ ...state.config, ...partialConfig });
+  next.updatedAt = now;
+  return next;
+}
+
 function totalReps(state) {
   return state.config.totalSets * state.config.repsPerSet;
 }
 
 function averageRepMs(state) {
-  if (!state.repSamples.length) return FALLBACK_REP_MS;
+  if (!state.repSamples.length) return fallbackRepMs(state.config);
   const sum = state.repSamples.reduce((a, b) => a + b, 0);
   return sum / state.repSamples.length;
 }
@@ -50,11 +70,6 @@ function getCurrentSet(state) {
     Math.floor(state.completedReps / state.config.repsPerSet),
     state.config.totalSets - 1
   );
-}
-
-function getRepInSet(state) {
-  if (state.completedReps >= totalReps(state)) return state.config.repsPerSet;
-  return state.completedReps % state.config.repsPerSet;
 }
 
 function getBreakRemainingMs(state, now = Date.now()) {
@@ -83,7 +98,7 @@ function logRep(state, now = Date.now()) {
   if (state.status !== 'active') return state;
   if (state.completedReps >= totalReps(state)) return state;
 
-  const duration = state.lastRepAt ? now - state.lastRepAt : FALLBACK_REP_MS;
+  const duration = state.lastRepAt ? now - state.lastRepAt : fallbackRepMs(state.config);
   const repSamples = [...state.repSamples, duration].slice(-MAX_REP_SAMPLES);
   const completedReps = state.completedReps + 1;
   const total = totalReps(state);
@@ -287,11 +302,11 @@ function fmtClock(ms) {
 window.Engine = {
   DEFAULT_CONFIG,
   freshState,
+  configureWorkout,
   totalReps,
   averageRepMs,
   getElapsedMs,
   getCurrentSet,
-  getRepInSet,
   getBreakRemainingMs,
   startWorkout,
   resetWorkout,

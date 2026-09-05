@@ -19,7 +19,7 @@
     🔊 Tap to enable rest-timer alert sound
   </button>
 
-  <div class="dial-card">
+  <div class="dial-card" id="dialCard">
     <div class="dial-wrap">
       <svg viewBox="0 0 232 232">
         <circle class="dial-track" cx="116" cy="116" r="100"></circle>
@@ -27,20 +27,22 @@
                 stroke-dasharray="628" stroke-dashoffset="628"></circle>
       </svg>
       <div class="dial-center">
-        <div class="dial-reps"><span id="repsDone">0</span><small> / <span id="repsTotal">720</span></small></div>
-        <div class="dial-sub">reps</div>
-        <div class="dial-set" id="setLabel">SET 1 / 24</div>
+        <div class="dial-reps"><span id="repsDone">0</span><small> / <span id="repsTotal">24</span></small></div>
+        <div class="dial-sub" id="repsSub">reps</div>
       </div>
     </div>
-
     <div class="pips" id="pips"></div>
+    <div class="plan-line" id="planLine">24 reps &middot; 30 pushups each &middot; 45s rest</div>
   </div>
 
-  <div class="break-banner" id="breakBanner">
-    <div>
-      <div class="label">He's resting</div>
-      <div class="time" id="breakTime">0:45</div>
+  <div class="break-card" id="breakCard" style="display:none;">
+    <div class="break-label">HE'S RESTING</div>
+    <div class="break-countdown" id="breakCountdown">0:45</div>
+    <div class="break-ring-wrap">
+      <svg viewBox="0 0 232 12"><rect x="0" y="0" width="232" height="12" rx="6" fill="var(--line)"/></svg>
+      <div class="break-progress" id="breakProgress"></div>
     </div>
+    <div class="break-sub">Next up: rep <span id="nextRepNum">2</span> / <span id="breakRepsTotal">24</span></div>
   </div>
 
   <div class="complete-banner" id="completeBanner">
@@ -50,19 +52,19 @@
 
   <div class="stats">
     <div class="stat">
-      <div class="stat-label">Elapsed</div>
-      <div class="stat-value" id="elapsedVal">0:00</div>
+      <div class="stat-label">Total time elapsed</div>
+      <div class="stat-value mono-big" id="elapsedVal">0:00</div>
     </div>
     <div class="stat">
       <div class="stat-label">Reps left</div>
-      <div class="stat-value" id="repsLeftVal">720</div>
+      <div class="stat-value" id="repsLeftVal">24</div>
     </div>
     <div class="stat">
       <div class="stat-label">Status</div>
       <div class="stat-value" id="statusVal">Idle</div>
     </div>
     <div class="stat">
-      <div class="stat-label">Sets done</div>
+      <div class="stat-label">Reps done</div>
       <div class="stat-value" id="setsVal">0 / 24</div>
     </div>
   </div>

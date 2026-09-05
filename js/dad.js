@@ -9,19 +9,24 @@
 
   const soundBtn = document.getElementById('soundUnlockBtn');
   soundBtn.addEventListener('click', () => {
-    if (window.Sound) Sound.unlock();
+    try { if (window.Sound) Sound.unlock(); } catch (e) { /* ignore */ }
     soundBtn.textContent = '🔊 Sound on';
     soundBtn.disabled = true;
   });
 
   const statusBadge = document.getElementById('statusBadge');
+  const dialCard = document.getElementById('dialCard');
+  const breakCard = document.getElementById('breakCard');
   const dialFill = document.getElementById('dialFill');
   const repsDone = document.getElementById('repsDone');
   const repsTotal = document.getElementById('repsTotal');
-  const setLabel = document.getElementById('setLabel');
+  const repsSub = document.getElementById('repsSub');
+  const planLine = document.getElementById('planLine');
   const pipsEl = document.getElementById('pips');
-  const breakBanner = document.getElementById('breakBanner');
-  const breakTime = document.getElementById('breakTime');
+  const breakCountdown = document.getElementById('breakCountdown');
+  const breakProgress = document.getElementById('breakProgress');
+  const nextRepNum = document.getElementById('nextRepNum');
+  const breakRepsTotal = document.getElementById('breakRepsTotal');
   const completeBanner = document.getElementById('completeBanner');
   const completeSub = document.getElementById('completeSub');
   const elapsedVal = document.getElementById('elapsedVal');
@@ -51,34 +56,42 @@
   }
 
   function render(now = Date.now()) {
-    // note: we don't mutate/commit here — the athlete's page owns transitions.
     const effective = E.checkBreakElapsed(state, now);
-    if (pipsBuilt !== state.config.totalSets) buildPips();
+    if (pipsBuilt !== effective.config.totalSets) buildPips();
 
     const total = E.totalReps(effective);
     const elapsed = E.getElapsedMs(effective, now);
-    const curSet = E.getCurrentSet(effective);
     const frac = effective.completedReps / total;
 
     repsDone.textContent = effective.completedReps;
     repsTotal.textContent = total;
+    repsSub.textContent = effective.completedReps === 1 ? 'rep' : 'reps';
+    planLine.textContent = `${total} reps · ${effective.config.pushupsPerRep} pushups each · ${Math.round(effective.config.breakMs / 1000)}s rest`;
     repsLeftVal.textContent = Math.max(0, total - effective.completedReps);
     elapsedVal.textContent = E.fmtClock(elapsed);
-    setLabel.textContent = `SET ${Math.min(curSet + 1, effective.config.totalSets)} / ${effective.config.totalSets}`;
-    setsVal.textContent = `${Math.floor(effective.completedReps / effective.config.repsPerSet)} / ${effective.config.totalSets}`;
+    setsVal.textContent = `${effective.completedReps} / ${total}`;
     statusVal.textContent = STATUS_LABEL[effective.status] || effective.status;
 
     dialFill.setAttribute('stroke-dashoffset', (CIRC * (1 - frac)).toFixed(1));
 
     [...pipsEl.children].forEach((p, i) => {
-      p.classList.toggle('done', i < curSet || effective.status === 'complete');
-      p.classList.toggle('current', i === curSet && effective.status !== 'complete');
+      p.classList.toggle('done', i < effective.completedReps);
+      p.classList.toggle('current', i === effective.completedReps && effective.status !== 'complete');
     });
 
-    statusBadge.textContent = effective.status === 'idle' ? 'WATCHING' : STATUS_LABEL[effective.status].toUpperCase();
+    const isBreak = effective.status === 'break';
+    dialCard.style.display = isBreak ? 'none' : 'flex';
+    breakCard.style.display = isBreak ? 'flex' : 'none';
+    if (isBreak) {
+      const remaining = E.getBreakRemainingMs(effective, now);
+      breakCountdown.textContent = E.fmtClock(remaining);
+      const pct = Math.max(0, Math.min(100, (remaining / effective.config.breakMs) * 100));
+      breakProgress.style.width = pct + '%';
+      nextRepNum.textContent = effective.completedReps + 1;
+      breakRepsTotal.textContent = total;
+    }
 
-    breakBanner.classList.toggle('show', effective.status === 'break');
-    if (effective.status === 'break') breakTime.textContent = E.fmtClock(E.getBreakRemainingMs(effective, now));
+    statusBadge.textContent = effective.status === 'idle' ? 'WATCHING' : (STATUS_LABEL[effective.status] || effective.status).toUpperCase();
 
     completeBanner.classList.toggle('show', effective.status === 'complete');
     if (effective.status === 'complete') completeSub.textContent = `${total} reps in ${E.fmtClock(elapsed)}`;
@@ -90,5 +103,5 @@
     prevStatus = effective.status;
   }
 
-  setInterval(() => render(), 250);
+  setInterval(() => render(), 200);
 })();
